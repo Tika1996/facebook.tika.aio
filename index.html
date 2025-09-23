@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <meta name="algolia-site-verification" content="EEC3EBA57BFE40B9" />
+
+        <title>FB AIO Extension</title>
+
+        <link rel="icon" href="./assets/logo-BgUNo_GL.png" />
+
+        <link
+            rel="stylesheet"
+            href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+            integrity="sha512-iecdLmaskl7CVkqkXNQ/ZH/XLlvWZOJyj7Yy7tcenmpD1ypASozpmT/E0iPtmFIB46ZmdtAc9eNBvH0H/ZpiBw=="
+            crossorigin="anonymous"
+            referrerpolicy="no-referrer"
+        />
+
+        <!-- Google tag (gtag.js) -->
+        <script async src="https://www.googletagmanager.com/gtag/js?id=G-0MQRTEC81L"></script>
+        <script>
+            window.dataLayer = window.dataLayer || [];
+
+            function gtag() {
+                dataLayer.push(arguments);
+            }
+            gtag('js', new Date());
+
+            gtag('config', 'G-0MQRTEC81L');
+        </script>
+
+        <!-- Google adsense -->
+        <!-- <script
+            async
+            src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-3880569561595847"
+            crossorigin="anonymous"
+        ></script> -->
+
+        <!-- Datafast -->
+        <!-- <script
+            defer
+            data-website-id="687a236d403a53da966232c8"
+            data-domain="fb-aio.github.io"
+            src="https://datafa.st/js/script.js"
+        ></script> -->
+
+        <style>
+            ._init_loading {
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                height: 100vh;
+                width: 100vw;
+                margin: 0;
+                padding: 0;
+                color: #999;
+            }
+        </style>
+        <script>
+            // Hide VIP/Checkout UI and redirect their routes to home
+            (function () {
+                function guardRoute() {
+                    if (/^#\/(vip|checkout)/i.test(location.hash)) {
+                        location.hash = '#/';
+                    }
+                }
+                function removeVIPUI(root) {
+                    const container = root || document;
+                    // Remove links to /vip or /checkout
+                    container.querySelectorAll('a[href*="/vip"], a[href*="/checkout"]').forEach(el => {
+                        const item = el.closest('li, .menu-item, .ant-menu-item, .ant-list-item, .ant-card, .ant-col, .ant-row') || el;
+                        item.remove();
+                    });
+                    // Remove buttons or spans containing VIP/Checkout text
+                    const matchText = (el) => /\b(vip|checkout)\b/i.test(el.textContent || '');
+                    container.querySelectorAll('button, span, div').forEach(el => {
+                        if (matchText(el) && !el.closest('#root ._init_loading')) {
+                            const item = el.closest('li, .menu-item, .ant-menu-item, .ant-list-item, .ant-card, .ant-col, .ant-row') || el;
+                            item.remove();
+                        }
+                    });
+                }
+                // Initial
+                guardRoute();
+                removeVIPUI();
+                window.addEventListener('hashchange', guardRoute);
+                // Observe dynamic UI
+                const mo = new MutationObserver((muts) => {
+                    for (const m of muts) {
+                        m.addedNodes && m.addedNodes.forEach(n => {
+                            if (n.nodeType === 1) removeVIPUI(n);
+                        });
+                    }
+                });
+                mo.observe(document.documentElement, { childList: true, subtree: true });
+            })();
+        </script>
+      <script type="module" crossorigin src="./assets/index-DZEcYG8Q.js"></script>
+      <link rel="stylesheet" crossorigin href="./assets/index-C6k8ZUm0.css">
+    </head>
+
+    <body style="margin: 0; padding: 0">
+        <!--[if IE]>
+            <p class="browserupgrade">
+                You are using an <strong>outdated</strong> browser. Please
+                <a href="https://browsehappy.com/">upgrade your browser</a> to improve your
+                experience and security.
+            </p>
+        <![endif]-->
+
+        <div id="root" style="margin: 0; padding: 0">
+            <div class="_init_loading">
+                <h1>🚀 Getting ready...</h1>
+            </div>
+        </div>
+    </body>
+</html>
