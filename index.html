@@ -73,18 +73,17 @@
                     const container = root || document;
                     // Hide links to /vip or /checkout
                     container.querySelectorAll('a[href*="/vip"], a[href*="/checkout"]').forEach(el => {
+                        if (el.closest('.swal2-container')) return; // do not touch SweetAlert dialogs
                         const item = el.closest('li, .menu-item, .ant-menu-item, .ant-list-item, .ant-card, .ant-col, .ant-row') || el;
                         item.classList?.add('fbaio-hide');
-                        item.setAttribute?.('aria-hidden','true');
                         item.setAttribute?.('data-fbaio','hidden');
                     });
                     // Hide buttons or spans containing VIP/Checkout text
                     const matchText = (el) => /\b(vip|checkout)\b/i.test(el.textContent || '');
                     container.querySelectorAll('button, span, div').forEach(el => {
-                        if (matchText(el) && !el.closest('#root ._init_loading')) {
+                        if (matchText(el) && !el.closest('#root ._init_loading') && !el.closest('.swal2-container')) {
                             const item = el.closest('li, .menu-item, .ant-menu-item, .ant-list-item, .ant-card, .ant-col, .ant-row') || el;
                             item.classList?.add('fbaio-hide');
-                            item.setAttribute?.('aria-hidden','true');
                             item.setAttribute?.('data-fbaio','hidden');
                         }
                     });
@@ -241,11 +240,11 @@
                     const c = root || document;
                     // Hide tags/badges with text 'Coming soon'
                     c.querySelectorAll('span, div, i').forEach(el => {
+                        if (el.closest('.swal2-container')) return; // skip SweetAlert
                         const txt = (el.textContent || '').trim();
                         if (/^coming\s+soon$/i.test(txt)){
                             el.style.display = 'none';
                             el.classList?.add('fbaio-hide');
-                            el.setAttribute?.('aria-hidden','true');
                         }
                     });
                     // Enable checkboxes/toggles that might be disabled
@@ -276,6 +275,7 @@
                     const c = root || document;
                     // Find banners by text
                     c.querySelectorAll('div,section,article').forEach(el => {
+                        if (el.closest('.swal2-container')) return; // skip SweetAlert
                         const txt = (el.textContent || '').trim();
                         if (/this feature requires\s*fb aio extension/i.test(txt)){
                             // Try to retarget the CTA button
@@ -285,7 +285,6 @@
                             }
                             // Also hide the legacy banner if desired
                             el.classList.add('fbaio-ext-required');
-                            el.setAttribute('aria-hidden','true');
                         }
                     });
                     // Rewrite any anchors pointing to Chrome Web Store / old extension ID
