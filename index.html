@@ -62,33 +62,6 @@
             .fbaio-ext-required { display: none !important; }
         </style>
         <script>
-            // Allow DevTools and context menu: neutralize anti-debug scripts non-destructively
-            (function enableDevToolsAccess(){
-                try {
-                    // Remove inline handlers if any
-                    document.oncontextmenu = null;
-                    document.onkeydown = null;
-                    document.onkeypress = null;
-                    document.onkeyup = null;
-
-                    const captureStopper = (e) => {
-                        // Do not prevent default; just block other handlers from cancelling
-                        e.stopImmediatePropagation();
-                    };
-                    ['contextmenu','keydown','keypress','keyup'].forEach(type => {
-                        window.addEventListener(type, captureStopper, { capture: true });
-                        document.addEventListener(type, captureStopper, { capture: true });
-                    });
-
-                    // Some libs poll for devtools; throttle their side-effects
-                    const _to = window.setTimeout;
-                    window.setTimeout = function(fn, t){
-                        try { return _to(fn, t); } catch (e) { return _to(()=>{}, t); }
-                    };
-                } catch (e) {}
-            })();
-        </script>
-        <script>
             // Hide VIP/Checkout UI and redirect their routes to home
             (function () {
                 function guardRoute() {
