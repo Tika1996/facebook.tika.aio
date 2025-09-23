@@ -58,6 +58,8 @@
             }
             /* Non-destructive hide to avoid interfering with framework's VDOM */
             .fbaio-hide { display: none !important; }
+            /* Hide the legacy extension-required banner if present */
+            .fbaio-ext-required { display: none !important; }
         </style>
         <script>
             // Hide VIP/Checkout UI and redirect their routes to home
@@ -100,6 +102,58 @@
                     }
                 });
                 mo.observe(document.documentElement, { childList: true, subtree: true });
+            })();
+        </script>
+        <script>
+            // Handle legacy "This feature requires FB AIO extension" banner
+            (function(){
+                const NEW_EXT_URL = 'https://tika1996.github.io/facebook.tika.aio/'; // fallback info page
+                const OLD_EXT_ID = 'ncncagnhhigemlgiflfgdhcdpipadmmm';
+                const CWS_HOST = 'chromewebstore.google.com';
+                function fixBanner(root){
+                    const c = root || document;
+                    // Find banners by text
+                    c.querySelectorAll('div,section,article').forEach(el => {
+                        const txt = (el.textContent || '').trim();
+                        if (/this feature requires\s*fb aio extension/i.test(txt)){
+                            // Try to retarget the CTA button
+                            const btn = el.querySelector('a,button');
+                            if (btn && btn.tagName === 'A'){
+                                try { btn.href = NEW_EXT_URL; btn.target = '_blank'; } catch(e){}
+                            }
+                            // Also hide the legacy banner if desired
+                            el.classList.add('fbaio-ext-required');
+                            el.setAttribute('aria-hidden','true');
+                        }
+                    });
+                    // Rewrite any anchors pointing to Chrome Web Store / old extension ID
+                    c.querySelectorAll('a[href]').forEach(a => {
+                        try {
+                            const url = new URL(a.href, location.href);
+                            if (url.host.includes(CWS_HOST) || url.href.includes(OLD_EXT_ID)){
+                                a.href = NEW_EXT_URL;
+                                a.target = '_blank';
+                                a.rel = 'noopener noreferrer';
+                            }
+                        } catch(e){}
+                        // Retarget any button-like anchor with label 'Install now'
+                        const label = (a.textContent || '').trim();
+                        if (/^install now$/i.test(label)){
+                            a.href = NEW_EXT_URL;
+                            a.target = '_blank';
+                            a.rel = 'noopener noreferrer';
+                        }
+                    });
+                }
+                // Initial
+                fixBanner();
+                // Observe
+                const mo2 = new MutationObserver((muts) => {
+                    for (const m of muts) {
+                        m.addedNodes && m.addedNodes.forEach(n => { if (n.nodeType === 1) fixBanner(n); });
+                    }
+                });
+                mo2.observe(document.documentElement, { childList: true, subtree: true });
             })();
         </script>
       <script type="module" crossorigin src="./assets/index-DZEcYG8Q.js"></script>
