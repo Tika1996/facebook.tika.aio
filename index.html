@@ -56,6 +56,8 @@
                 padding: 0;
                 color: #999;
             }
+            /* Non-destructive hide to avoid interfering with framework's VDOM */
+            .fbaio-hide { display: none !important; }
         </style>
         <script>
             // Hide VIP/Checkout UI and redirect their routes to home
@@ -65,31 +67,35 @@
                         location.hash = '#/';
                     }
                 }
-                function removeVIPUI(root) {
+                function hideVIPUI(root) {
                     const container = root || document;
-                    // Remove links to /vip or /checkout
+                    // Hide links to /vip or /checkout
                     container.querySelectorAll('a[href*="/vip"], a[href*="/checkout"]').forEach(el => {
                         const item = el.closest('li, .menu-item, .ant-menu-item, .ant-list-item, .ant-card, .ant-col, .ant-row') || el;
-                        item.remove();
+                        item.classList?.add('fbaio-hide');
+                        item.setAttribute?.('aria-hidden','true');
+                        item.setAttribute?.('data-fbaio','hidden');
                     });
-                    // Remove buttons or spans containing VIP/Checkout text
+                    // Hide buttons or spans containing VIP/Checkout text
                     const matchText = (el) => /\b(vip|checkout)\b/i.test(el.textContent || '');
                     container.querySelectorAll('button, span, div').forEach(el => {
                         if (matchText(el) && !el.closest('#root ._init_loading')) {
                             const item = el.closest('li, .menu-item, .ant-menu-item, .ant-list-item, .ant-card, .ant-col, .ant-row') || el;
-                            item.remove();
+                            item.classList?.add('fbaio-hide');
+                            item.setAttribute?.('aria-hidden','true');
+                            item.setAttribute?.('data-fbaio','hidden');
                         }
                     });
                 }
                 // Initial
                 guardRoute();
-                removeVIPUI();
+                hideVIPUI();
                 window.addEventListener('hashchange', guardRoute);
                 // Observe dynamic UI
                 const mo = new MutationObserver((muts) => {
                     for (const m of muts) {
                         m.addedNodes && m.addedNodes.forEach(n => {
-                            if (n.nodeType === 1) removeVIPUI(n);
+                            if (n.nodeType === 1) hideVIPUI(n);
                         });
                     }
                 });
