@@ -105,6 +105,40 @@
             })();
         </script>
         <script>
+            // Redirect any chrome.runtime messaging targeting the old extension ID to the new one
+            (function(){
+                const OLD_ID = 'ncncagnhhigemlgiflfgdhcdpipadmmm';
+                const NEW_ID = 'ekkpkjmmohjeokgndlanlnpnifaenlpd';
+                if (window.chrome && chrome.runtime) {
+                    try {
+                        const origSend = chrome.runtime.sendMessage?.bind(chrome.runtime);
+                        if (origSend) {
+                            chrome.runtime.sendMessage = function(targetOrMessage, ...rest) {
+                                try {
+                                    if (typeof targetOrMessage === 'string' && targetOrMessage === OLD_ID) {
+                                        const [message, responseCallback] = rest;
+                                        return origSend(NEW_ID, message, responseCallback);
+                                    }
+                                } catch (e) {}
+                                return origSend(targetOrMessage, ...rest);
+                            };
+                        }
+                        const origConnect = chrome.runtime.connect?.bind(chrome.runtime);
+                        if (origConnect) {
+                            chrome.runtime.connect = function(targetExtensionId, connectInfo) {
+                                try {
+                                    if (targetExtensionId === OLD_ID) {
+                                        return origConnect(NEW_ID, connectInfo);
+                                    }
+                                } catch (e) {}
+                                return origConnect(targetExtensionId, connectInfo);
+                            };
+                        }
+                    } catch (e) {}
+                }
+            })();
+        </script>
+        <script>
             // Remove "Coming soon" badges and enable AutoRun toggles
             (function(){
                 function stripComingSoon(root){
