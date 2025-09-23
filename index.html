@@ -104,30 +104,34 @@
             })();
         </script>
         <script>
-            // Suppress VIP SweetAlert modals (no paywall dialogs)
+            // Neutralize any remaining VIP prompts/modals (e.g., SweetAlert VIP forms)
             (function(){
-                function patchSwal(){
-                    const g = window.Swal || window.swal || window.Sweetalert2 || window.sweetalert2;
-                    if (!g || !g.fire || g.__fbaio_patched) return;
-                    const VIP_RE = /(\bVIP\b|See Pricing|Unlock VIP|Buy\s*💎|Gia hạn|Unlock VIP features)/i;
-                    const orig = g.fire.bind(g);
-                    g.fire = function(cfg, ...rest){
-                        try{
-                            const text = typeof cfg === 'string' ? cfg : `${cfg?.title||''} ${cfg?.html||''} ${cfg?.text||''}`;
-                            if (VIP_RE.test(text)){
-                                // Simulate dismissed dialog to continue without showing paywall
-                                const res = { isConfirmed:false, isDenied:false, isDismissed:true, dismiss: (g.DismissReason?.cancel)||'cancel' };
-                                return Promise.resolve(res);
-                            }
-                        }catch(e){}
-                        return orig(cfg, ...rest);
-                    };
-                    g.__fbaio_patched = true;
+                function hideVipModals(root){
+                    const c = root || document;
+                    c.querySelectorAll('.swal2-container, .swal2-popup').forEach(el => {
+                        const txt = (el.textContent || '').toLowerCase();
+                        if (/(unlock\s+vip|see\s+pricing|pricing|buy\s+vip|vip\s+expired|renew\s+vip)/i.test(txt)){
+                            // Hide dialog non-destructively
+                            el.style.display = 'none';
+                            el.classList.add('fbaio-hide');
+                        }
+                    });
+                    // Disable any button that would open VIP/pricing
+                    c.querySelectorAll('a,button').forEach(btn => {
+                        const label = (btn.textContent || '').toLowerCase();
+                        if (/(see\s+pricing|pricing|unlock\s+vip|buy\s+vip|renew\s+vip)/i.test(label)){
+                            btn.addEventListener('click', e => { e.stopImmediatePropagation(); e.preventDefault(); }, {capture:true});
+                            btn.classList.add('fbaio-hide');
+                        }
+                    });
                 }
-                // Try now and on load
-                patchSwal();
-                window.addEventListener('load', patchSwal);
-                const mo = new MutationObserver(patchSwal);
+                // Initial and observe changes
+                hideVipModals();
+                const mo = new MutationObserver(muts => {
+                    for (const m of muts){
+                        if (m.addedNodes) m.addedNodes.forEach(n => { if (n.nodeType === 1) hideVipModals(n); });
+                    }
+                });
                 mo.observe(document.documentElement, {childList:true, subtree:true});
             })();
         </script>
@@ -138,20 +142,12 @@
                 const shouldBlock = (url) => {
                     try { const u = new URL(url, location.href); return u.host === BLOCK_HOST; } catch(e) { return false; }
                 };
-                const shouldForceVIP = (url) => {
-                    try { const u = new URL(url, location.href); return /\/isVIP\//i.test(u.pathname); } catch(e) { return false; }
-                };
                 // Block fetch
                 if (window.fetch) {
                     const origFetch = window.fetch.bind(window);
                     window.fetch = function(input, init){
                         const url = typeof input === 'string' ? input : (input?.url || '');
                         if (shouldBlock(url)) return Promise.resolve(new Response('', {status: 204}))
-                        if (shouldForceVIP(url)) {
-                            // Return a far future timestamp so VIP is always valid
-                            const exp = Date.now() + 31536e8; // ~10 years
-                            return Promise.resolve(new Response(String(exp), {status: 200}));
-                        }
                         return origFetch(input, init);
                     };
                 }
@@ -160,25 +156,11 @@
                     const OrigXHR = window.XMLHttpRequest;
                     function Wrapped(){ const xhr = new OrigXHR();
                         const open = xhr.open; xhr.open = function(method, url, ...rest){
-                            if (shouldBlock(url)) { this.__blocked = 'blocked'; }
-                            if (shouldForceVIP(url)) { this.__blocked = 'forceVIP'; }
+                            if (shouldBlock(url)) { this.__blocked = true; }
                             return open.call(this, method, url, ...rest);
                         };
                         const send = xhr.send; xhr.send = function(...args){
-                            if (this.__blocked === 'blocked') { try { this.abort(); } catch(e){} return; }
-                            if (this.__blocked === 'forceVIP') {
-                                try {
-                                    const exp = Date.now() + 31536e8;
-                                    // Simulate successful XHR with the future timestamp
-                                    this.readyState = 4;
-                                    this.status = 200;
-                                    this.responseText = String(exp);
-                                    this.response = this.responseText;
-                                    this.onreadystatechange && this.onreadystatechange();
-                                    this.onload && this.onload();
-                                } catch(e){}
-                                return;
-                            }
+                            if (this.__blocked) { try { this.abort(); } catch(e){} return; }
                             return send.apply(this, args);
                         };
                         return xhr;
