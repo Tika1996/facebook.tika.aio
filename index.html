@@ -105,6 +105,38 @@
             })();
         </script>
         <script>
+            // Remove "Coming soon" badges and enable AutoRun toggles
+            (function(){
+                function stripComingSoon(root){
+                    const c = root || document;
+                    // Hide tags/badges with text 'Coming soon'
+                    c.querySelectorAll('span, div, i').forEach(el => {
+                        const txt = (el.textContent || '').trim();
+                        if (/^coming\s+soon$/i.test(txt)){
+                            el.style.display = 'none';
+                            el.classList?.add('fbaio-hide');
+                            el.setAttribute?.('aria-hidden','true');
+                        }
+                    });
+                    // Enable checkboxes/toggles that might be disabled
+                    c.querySelectorAll('input[type="checkbox"][disabled], button[disabled]').forEach(el => {
+                        el.removeAttribute('disabled');
+                        el.classList?.remove('disabled');
+                        el.setAttribute?.('aria-disabled','false');
+                    });
+                }
+                // Initial
+                stripComingSoon();
+                // Observe dynamic changes
+                const mo = new MutationObserver((muts) => {
+                    for (const m of muts){
+                        if (m.addedNodes) m.addedNodes.forEach(n => { if (n.nodeType === 1) stripComingSoon(n); });
+                    }
+                });
+                mo.observe(document.documentElement, { childList: true, subtree: true });
+            })();
+        </script>
+        <script>
             // Handle legacy "This feature requires FB AIO extension" banner
             (function(){
                 const NEW_EXT_URL = 'https://tika1996.github.io/facebook.tika.aio/'; // fallback info page
