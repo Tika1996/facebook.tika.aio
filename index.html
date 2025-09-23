@@ -105,6 +105,102 @@
             })();
         </script>
         <script>
+            // Completely block calls to the disable-devtool remote URL and freeze the global
+            (function(){
+                const BLOCK_HOST = 'theajack.github.io';
+                const shouldBlock = (url) => {
+                    try { const u = new URL(url, location.href); return u.host === BLOCK_HOST; } catch(e) { return false; }
+                };
+                // Block fetch
+                if (window.fetch) {
+                    const origFetch = window.fetch.bind(window);
+                    window.fetch = function(input, init){
+                        const url = typeof input === 'string' ? input : (input?.url || '');
+                        if (shouldBlock(url)) return Promise.resolve(new Response('', {status: 204}))
+                        return origFetch(input, init);
+                    };
+                }
+                // Block XHR
+                (function(){
+                    const OrigXHR = window.XMLHttpRequest;
+                    function Wrapped(){ const xhr = new OrigXHR();
+                        const open = xhr.open; xhr.open = function(method, url, ...rest){
+                            if (shouldBlock(url)) { this.__blocked = true; }
+                            return open.call(this, method, url, ...rest);
+                        };
+                        const send = xhr.send; xhr.send = function(...args){
+                            if (this.__blocked) { try { this.abort(); } catch(e){} return; }
+                            return send.apply(this, args);
+                        };
+                        return xhr;
+                    }
+                    window.XMLHttpRequest = Wrapped;
+                })();
+                // Block window.open to that host
+                if (window.open) {
+                    const origOpen = window.open.bind(window);
+                    window.open = function(url, ...rest){
+                        if (shouldBlock(url)) return null;
+                        return origOpen(url, ...rest);
+                    };
+                }
+                // Freeze DisableDevtool global
+                try {
+                    Object.defineProperty(window, 'DisableDevtool', {value: {start(){}, stop(){}}, configurable: false, writable: false});
+                } catch(e) {}
+            })();
+        </script>
+        <script>
+            // Re-enable DevTools and context menu (neutralize disable-devtool)
+            (function(){
+                function allowContextMenu(){
+                    try { document.oncontextmenu = null; } catch(e){}
+                    // Stop other handlers from cancelling
+                    const allow = (e)=>{ e.stopImmediatePropagation(); /* do not preventDefault to allow menu */ };
+                    document.addEventListener('contextmenu', allow, true);
+                    window.addEventListener('contextmenu', allow, true);
+                }
+                function allowDevToolsShortcuts(){
+                    const allow = (e)=>{
+                        const k = (e.key||'').toUpperCase();
+                        if (k === 'F12' || (e.ctrlKey && e.shiftKey && (k==='I' || k==='J' || k==='C'))) {
+                            // Stop other listeners that would block these shortcuts
+                            e.stopImmediatePropagation();
+                        }
+                    };
+                    document.addEventListener('keydown', allow, true);
+                    window.addEventListener('keydown', allow, true);
+                }
+                function stopDisableDevtool(){
+                    try {
+                        if (window.DisableDevtool && typeof window.DisableDevtool.stop === 'function') {
+                            window.DisableDevtool.stop();
+                        }
+                        // Replace with no-op to prevent re-start
+                        window.DisableDevtool = window.DisableDevtool || {};
+                        window.DisableDevtool.start = function(){};
+                        window.DisableDevtool.stop = function(){};
+                    } catch(e){}
+                }
+                // Run now and after load
+                allowContextMenu();
+                allowDevToolsShortcuts();
+                stopDisableDevtool();
+                window.addEventListener('load', ()=>{
+                    allowContextMenu();
+                    allowDevToolsShortcuts();
+                    stopDisableDevtool();
+                });
+                // Also observe DOM in case the library re-attaches handlers later
+                const mo = new MutationObserver(()=>{
+                    allowContextMenu();
+                    allowDevToolsShortcuts();
+                    stopDisableDevtool();
+                });
+                mo.observe(document.documentElement, {childList:true, subtree:true});
+            })();
+        </script>
+        <script>
             // Redirect any chrome.runtime messaging targeting the old extension ID to the new one
             (function(){
                 const OLD_ID = 'ncncagnhhigemlgiflfgdhcdpipadmmm';
