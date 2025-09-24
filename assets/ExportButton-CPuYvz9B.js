@@ -3,9 +3,41 @@ import{a$ as i,b1 as o,b5 as e,aY as t}from"./index-DZEcYG8Q.js";import{u as l,t
 async function __buildZip(data){
   const { default: fileDownload } = await import('./file-download-pLw6ZM0z.js').then(m=>({default:m.f}));
   const mod = await import('./jszip.min-BE4ZPCso.js');
-  const lib = mod && (mod.default || mod);
-  const JSZipCtor = (lib && (lib.JSZip || lib));
-  const zip = new JSZipCtor();
+  const candidates = [
+    mod?.JSZip,
+    mod?.default?.JSZip,
+    mod?.j?.JSZip,
+    mod?.default,
+    mod?.j,
+    mod,
+    (typeof window!=='undefined'&&window.JSZip)
+  ];
+  let zip = null;
+  for (const cand of candidates){
+    if (!cand) continue;
+    try {
+      if (typeof cand === 'function') {
+        try { zip = new cand(); } catch { zip = cand(); }
+      } else if (typeof cand.JSZip === 'function') {
+        try { zip = new cand.JSZip(); } catch { zip = cand.JSZip(); }
+      } else if (cand.file && cand.generateAsync) {
+        zip = cand; // already an instance
+      }
+    } catch {}
+    if (zip && typeof zip.file === 'function' && typeof zip.generateAsync === 'function') break;
+    else zip = null;
+  }
+  if (!zip) throw new TypeError('JSZip instance could not be created');
+  // Fallback via CDN if still not available
+  if (!zip) {
+    await new Promise((res, rej)=>{
+      const s=document.createElement('script');
+      s.src='https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js';
+      s.onload=()=>res(); s.onerror=()=>rej(new Error('CDN JSZip load failed'));
+      document.head.appendChild(s);
+    });
+    if (window.JSZip) zip = new window.JSZip();
+  }
   // Add JSON
   const jsonStr = typeof data === 'string' ? data : JSON.stringify(data, null, 2);
   zip.file('posts.json', jsonStr);
