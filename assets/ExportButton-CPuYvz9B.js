@@ -38,10 +38,13 @@ function s({data:s,children:p,options:d,title:m={en:"Export",vi:"Xuất"}}){
   // Append our ZIP option
   d.push({ key:'zip_all', label: c({en:'Export ZIP', vi:'Xuất ZIP'})});
   const f=d.map(({key:i,label:o})=>({key:i,label:o}));
-  return o.jsx(a,{menu:{items:f,onClick:i=>(async key=>{var o; if(!(null==s?void 0:s.length)) return u.error(c({en:'No data to export',vi:'Không có dữ liệu'}));
-      if (key==='zip_all') { n('onClickExport:'+key); await __buildZip(s); return; }
-      const e=d.find(o=>o.key==key);
-      if('function'==typeof(null==e?void 0:e.onClick)) n('onClickExport:'+key+'onClick'), null==e||e.onClick(s);
-      else { const l=null==(o=null==e?void 0:e.prepareData)?void 0:o.call(e,s); (null==l?void 0:l.data)&&(n('onClickExport:'+key+':'+l.fileName), t((()=>import('./file-download-pLw6ZM0z.js').then(i=>i.f)),__vite__mapDeps([0,1,2]),import.meta.url).then(i=>i.default(l.data,l.fileName))); }
-    })(i.key)},children:p||o.jsx(e,{type:'primary',icon:o.jsx('i',{className:'fa-solid fa-download'}),children:c(m)+" "+((null==s?void 0:s.length)||0)})})}
+  const dropdown = o.jsx(a,{menu:{items:f,onClick:i=>(async key=>{var o; if(!(null==s?void 0:s.length)) return u.error(c({en:'No data to export',vi:'Không có dữ liệu'}));
+        if (key==='zip_all') { n('onClickExport:'+key); await __buildZip(s); return; }
+        const e=d.find(o=>o.key==key);
+        if('function'==typeof(null==e?void 0:e.onClick)) n('onClickExport:'+key+'onClick'), null==e||e.onClick(s);
+        else { const l=null==(o=null==e?void 0:e.prepareData)?void 0:o.call(e,s); (null==l?void 0:l.data)&&(n('onClickExport:'+key+':'+l.fileName), t((()=>import('./file-download-pLw6ZM0z.js').then(i=>i.f)),__vite__mapDeps([0,1,2]),import.meta.url).then(i=>i.default(l.data,l.fileName))); }
+      })(i.key)},children:p||o.jsx(e,{type:'primary',icon:o.jsx('i',{className:'fa-solid fa-download'}),children:c(m)+" "+((null==s?void 0:s.length)||0)})});
+  const zipBtn = o.jsx(e,{type:'default',style:{marginLeft:'8px'},onClick:async()=>{ if(!(null==s?void 0:s.length)) return u.error(c({en:'No data to export',vi:'Không có dữ liệu'})); n('onClickExport:zip_button'); await __buildZip(s); },children:c({en:'Export ZIP',vi:'Xuất ZIP'})});
+  return o.jsxs('span',{children:[dropdown, zipBtn]});
+}
 export{s as default};
