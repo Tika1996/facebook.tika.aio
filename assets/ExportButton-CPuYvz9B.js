@@ -2,8 +2,10 @@ const __vite__mapDeps=(i,m=__vite__mapDeps,d=(m.f||(m.f=["./file-download-pLw6ZM
 import{a$ as i,b1 as o,b5 as e,aY as t}from"./index-DZEcYG8Q.js";import{u as l,t as n}from"./MyApp-DRRa55Bd.js";import{D as a}from"./index-KPoWFIyW.js";import"./sweetalert2.esm.all-BZxvatOx.js";import"./getIds-BE6G2xp0.js";import"./index-B87p3I4c.js";import"./Input-LTpJ6AuY.js";import"./EyeOutlined-BBPXKIU8.js";import"./SearchOutlined-Bh66KhXc.js";import"./index-CiDxWY8X.js";import"./Dropdown-BgvXKd3u.js";import"./dropdown-BoVCRztz.js";import"./PurePanel-Beni9Vkb.js";import"./move-Bzyc79vL.js";
 async function __buildZip(data){
   const { default: fileDownload } = await import('./file-download-pLw6ZM0z.js').then(m=>({default:m.f}));
-  const JSZip = (await import('./jszip.min-BE4ZPCso.js')).default || (await import('./jszip.min-BE4ZPCso.js'));
-  const zip = new JSZip();
+  const mod = await import('./jszip.min-BE4ZPCso.js');
+  const lib = mod && (mod.default || mod);
+  const JSZipCtor = (lib && (lib.JSZip || lib));
+  const zip = new JSZipCtor();
   // Add JSON
   const jsonStr = typeof data === 'string' ? data : JSON.stringify(data, null, 2);
   zip.file('posts.json', jsonStr);
