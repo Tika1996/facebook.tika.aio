@@ -239,52 +239,7 @@
                 mo.observe(document.documentElement, {childList:true, subtree:true});
             })();
         </script>
-        <script>
-            // Completely block calls to the disable-devtool remote URL and freeze the global
-            (function(){
-                const BLOCK_HOST = 'theajack.github.io';
-                const shouldBlock = (url) => {
-                    try { const u = new URL(url, location.href); return u.host === BLOCK_HOST; } catch(e) { return false; }
-                };
-                // Block fetch
-                if (window.fetch) {
-                    const origFetch = window.fetch.bind(window);
-                    window.fetch = function(input, init){
-                        const url = typeof input === 'string' ? input : (input?.url || '');
-                        if (shouldBlock(url)) return Promise.resolve(new Response('', {status: 204}))
-                        return origFetch(input, init);
-                    };
-                }
-                // Block XHR
-                (function(){
-                    const OrigXHR = window.XMLHttpRequest;
-                    function Wrapped(){ const xhr = new OrigXHR();
-                        const open = xhr.open; xhr.open = function(method, url, ...rest){
-                            if (shouldBlock(url)) { this.__blocked = true; }
-                            return open.call(this, method, url, ...rest);
-                        };
-                        const send = xhr.send; xhr.send = function(...args){
-                            if (this.__blocked) { try { this.abort(); } catch(e){} return; }
-                            return send.apply(this, args);
-                        };
-                        return xhr;
-                    }
-                    window.XMLHttpRequest = Wrapped;
-                })();
-                // Block window.open to that host
-                if (window.open) {
-                    const origOpen = window.open.bind(window);
-                    window.open = function(url, ...rest){
-                        if (shouldBlock(url)) return null;
-                        return origOpen(url, ...rest);
-                    };
-                }
-                // Freeze DisableDevtool global
-                try {
-                    Object.defineProperty(window, 'DisableDevtool', {value: {start(){}, stop(){}}, configurable: false, writable: false});
-                } catch(e) {}
-            })();
-        </script>
+        
         <script>
             // Re-enable DevTools and context menu (neutralize disable-devtool)
             (function(){
