@@ -1,371 +1,84 @@
-<!DOCTYPE html>
-<html lang="en">
-    <head>
-        <meta charset="UTF-8" />
-        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-        <meta name="algolia-site-verification" content="EEC3EBA57BFE40B9" />
-
-        <title>FB AIO Extension</title>
-
-        <link rel="icon" href="./assets/logo-BgUNo_GL.png" />
-
-        <link
-            rel="stylesheet"
-            href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
-            integrity="sha512-iecdLmaskl7CVkqkXNQ/ZH/XLlvWZOJyj7Yy7tcenmpD1ypASozpmT/E0iPtmFIB46ZmdtAc9eNBvH0H/ZpiBw=="
-            crossorigin="anonymous"
-            referrerpolicy="no-referrer"
-        />
-
-        <!-- Google tag (gtag.js) -->
-        <script async src="https://www.googletagmanager.com/gtag/js?id=G-0MQRTEC81L"></script>
-        <script>
-            window.dataLayer = window.dataLayer || [];
-
-            function gtag() {
-                dataLayer.push(arguments);
-            }
-            gtag('js', new Date());
-
-            gtag('config', 'G-0MQRTEC81L');
-        </script>
-
-        <!-- Google adsense -->
-        <!-- <script
-            async
-            src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-3880569561595847"
-            crossorigin="anonymous"
-        ></script> -->
-
-        <!-- Datafast -->
-        <!-- <script
-            defer
-            data-website-id="687a236d403a53da966232c8"
-            data-domain="fb-aio.github.io"
-            src="https://datafa.st/js/script.js"
-        ></script> -->
-
-        <style>
-            ._init_loading {
-                display: flex;
-                justify-content: center;
-                align-items: center;
-                height: 100vh;
-                width: 100vw;
-                margin: 0;
-                padding: 0;
-                color: #999;
-            }
-            /* Non-destructive hide to avoid interfering with framework's VDOM */
-            .fbaio-hide { display: none !important; }
-            /* Hide the legacy extension-required banner if present */
-            .fbaio-ext-required { display: none !important; }
-        </style>
-        <script>
-            // Hide VIP/Checkout UI and redirect their routes to home
-            (function () {
-                function guardRoute() {
-                    if (/^#\/(vip|checkout)/i.test(location.hash)) {
-                        location.hash = '#/';
-                    }
-                }
-                function hideVIPUI(root) {
-                    const container = root || document;
-                    // Hide links to /vip or /checkout
-                    container.querySelectorAll('a[href*="/vip"], a[href*="/checkout"]').forEach(el => {
-                        if (el.closest('.swal2-container')) return; // do not touch SweetAlert dialogs
-                        const item = el.closest('li, .menu-item, .ant-menu-item, .ant-list-item, .ant-card, .ant-col, .ant-row') || el;
-                        item.classList?.add('fbaio-hide');
-                        item.setAttribute?.('data-fbaio','hidden');
-                    });
-                    // Hide buttons or spans containing VIP/Checkout text
-                    const matchText = (el) => /\b(vip|checkout)\b/i.test(el.textContent || '');
-                    container.querySelectorAll('button, span, div').forEach(el => {
-                        if (matchText(el) && !el.closest('#root ._init_loading') && !el.closest('.swal2-container')) {
-                            const item = el.closest('li, .menu-item, .ant-menu-item, .ant-list-item, .ant-card, .ant-col, .ant-row') || el;
-                            item.classList?.add('fbaio-hide');
-                            item.setAttribute?.('data-fbaio','hidden');
-                        }
-                    });
-                }
-                // Initial
-                guardRoute();
-                hideVIPUI();
-                window.addEventListener('hashchange', guardRoute);
-                // Observe dynamic UI
-                const mo = new MutationObserver((muts) => {
-                    for (const m of muts) {
-                        m.addedNodes && m.addedNodes.forEach(n => {
-                            if (n.nodeType === 1) hideVIPUI(n);
-                        });
-                    }
-                });
-                mo.observe(document.documentElement, { childList: true, subtree: true });
-            })();
-        </script>
-        <script>
-            // Neutralize any remaining VIP prompts/modals (e.g., SweetAlert VIP forms)
-            (function(){
-                function hideVipModals(root){
-                    const c = root || document;
-                    c.querySelectorAll('.swal2-container, .swal2-popup').forEach(el => {
-                        const txt = (el.textContent || '').toLowerCase();
-                        if (/(unlock\s+vip|see\s+pricing|pricing|buy\s+vip|vip\s+expired|renew\s+vip)/i.test(txt)){
-                            // Hide dialog non-destructively
-                            el.style.display = 'none';
-                            el.classList.add('fbaio-hide');
-                        }
-                    });
-                    // Disable any button that would open VIP/pricing
-                    c.querySelectorAll('a,button').forEach(btn => {
-                        const label = (btn.textContent || '').toLowerCase();
-                        if (/(see\s+pricing|pricing|unlock\s+vip|buy\s+vip|renew\s+vip)/i.test(label)){
-                            btn.addEventListener('click', e => { e.stopImmediatePropagation(); e.preventDefault(); }, {capture:true});
-                            btn.classList.add('fbaio-hide');
-                        }
-                    });
-                }
-                // Initial and observe changes
-                hideVipModals();
-                const mo = new MutationObserver(muts => {
-                    for (const m of muts){
-                        if (m.addedNodes) m.addedNodes.forEach(n => { if (n.nodeType === 1) hideVipModals(n); });
-                    }
-                });
-                mo.observe(document.documentElement, {childList:true, subtree:true});
-            })();
-        </script>
-        <script>
-            // Completely block calls to the disable-devtool remote URL and freeze the global
-            (function(){
-                const BLOCK_HOST = 'theajack.github.io';
-                const shouldBlock = (url) => {
-                    try { const u = new URL(url, location.href); return u.host === BLOCK_HOST; } catch(e) { return false; }
-                };
-                // Block fetch
-                if (window.fetch) {
-                    const origFetch = window.fetch.bind(window);
-                    window.fetch = function(input, init){
-                        const url = typeof input === 'string' ? input : (input?.url || '');
-                        if (shouldBlock(url)) return Promise.resolve(new Response('', {status: 204}))
-                        return origFetch(input, init);
-                    };
-                }
-                // Block XHR
-                (function(){
-                    const OrigXHR = window.XMLHttpRequest;
-                    function Wrapped(){ const xhr = new OrigXHR();
-                        const open = xhr.open; xhr.open = function(method, url, ...rest){
-                            if (shouldBlock(url)) { this.__blocked = true; }
-                            return open.call(this, method, url, ...rest);
-                        };
-                        const send = xhr.send; xhr.send = function(...args){
-                            if (this.__blocked) { try { this.abort(); } catch(e){} return; }
-                            return send.apply(this, args);
-                        };
-                        return xhr;
-                    }
-                    window.XMLHttpRequest = Wrapped;
-                })();
-                // Block window.open to that host
-                if (window.open) {
-                    const origOpen = window.open.bind(window);
-                    window.open = function(url, ...rest){
-                        if (shouldBlock(url)) return null;
-                        return origOpen(url, ...rest);
-                    };
-                }
-                // Freeze DisableDevtool global
-                try {
-                    Object.defineProperty(window, 'DisableDevtool', {value: {start(){}, stop(){}}, configurable: false, writable: false});
-                } catch(e) {}
-            })();
-        </script>
-        <script>
-            // Re-enable DevTools and context menu (neutralize disable-devtool)
-            (function(){
-                function allowContextMenu(){
-                    try { document.oncontextmenu = null; } catch(e){}
-                    // Stop other handlers from cancelling
-                    const allow = (e)=>{ e.stopImmediatePropagation(); /* do not preventDefault to allow menu */ };
-                    document.addEventListener('contextmenu', allow, true);
-                    window.addEventListener('contextmenu', allow, true);
-                }
-                function allowDevToolsShortcuts(){
-                    const allow = (e)=>{
-                        const k = (e.key||'').toUpperCase();
-                        if (k === 'F12' || (e.ctrlKey && e.shiftKey && (k==='I' || k==='J' || k==='C'))) {
-                            // Stop other listeners that would block these shortcuts
-                            e.stopImmediatePropagation();
-                        }
-                    };
-                    document.addEventListener('keydown', allow, true);
-                    window.addEventListener('keydown', allow, true);
-                }
-                function stopDisableDevtool(){
-                    try {
-                        if (window.DisableDevtool && typeof window.DisableDevtool.stop === 'function') {
-                            window.DisableDevtool.stop();
-                        }
-                        // Replace with no-op to prevent re-start
-                        window.DisableDevtool = window.DisableDevtool || {};
-                        window.DisableDevtool.start = function(){};
-                        window.DisableDevtool.stop = function(){};
-                    } catch(e){}
-                }
-                // Run now and after load
-                allowContextMenu();
-                allowDevToolsShortcuts();
-                stopDisableDevtool();
-                window.addEventListener('load', ()=>{
-                    allowContextMenu();
-                    allowDevToolsShortcuts();
-                    stopDisableDevtool();
-                });
-                // Also observe DOM in case the library re-attaches handlers later
-                const mo = new MutationObserver(()=>{
-                    allowContextMenu();
-                    allowDevToolsShortcuts();
-                    stopDisableDevtool();
-                });
-                mo.observe(document.documentElement, {childList:true, subtree:true});
-            })();
-        </script>
-        <script>
-            // Redirect any chrome.runtime messaging targeting the old extension ID to the new one
-            (function(){
-                const OLD_ID = 'ncncagnhhigemlgiflfgdhcdpipadmmm';
-                const NEW_ID = 'ekkpkjmmohjeokgndlanlnpnifaenlpd';
-                if (window.chrome && chrome.runtime) {
-                    try {
-                        const origSend = chrome.runtime.sendMessage?.bind(chrome.runtime);
-                        if (origSend) {
-                            chrome.runtime.sendMessage = function(targetOrMessage, ...rest) {
-                                try {
-                                    if (typeof targetOrMessage === 'string' && targetOrMessage === OLD_ID) {
-                                        const [message, responseCallback] = rest;
-                                        return origSend(NEW_ID, message, responseCallback);
-                                    }
-                                } catch (e) {}
-                                return origSend(targetOrMessage, ...rest);
-                            };
-                        }
-                        const origConnect = chrome.runtime.connect?.bind(chrome.runtime);
-                        if (origConnect) {
-                            chrome.runtime.connect = function(targetExtensionId, connectInfo) {
-                                try {
-                                    if (targetExtensionId === OLD_ID) {
-                                        return origConnect(NEW_ID, connectInfo);
-                                    }
-                                } catch (e) {}
-                                return origConnect(targetExtensionId, connectInfo);
-                            };
-                        }
-                    } catch (e) {}
-                }
-            })();
-        </script>
-        <script>
-            // Remove "Coming soon" badges and enable AutoRun toggles
-            (function(){
-                function stripComingSoon(root){
-                    const c = root || document;
-                    // Hide tags/badges with text 'Coming soon'
-                    c.querySelectorAll('span, div, i').forEach(el => {
-                        if (el.closest('.swal2-container')) return; // skip SweetAlert
-                        const txt = (el.textContent || '').trim();
-                        if (/^coming\s+soon$/i.test(txt)){
-                            el.style.display = 'none';
-                            el.classList?.add('fbaio-hide');
-                        }
-                    });
-                    // Enable checkboxes/toggles that might be disabled
-                    c.querySelectorAll('input[type="checkbox"][disabled], button[disabled]').forEach(el => {
-                        el.removeAttribute('disabled');
-                        el.classList?.remove('disabled');
-                        el.setAttribute?.('aria-disabled','false');
-                    });
-                }
-                // Initial
-                stripComingSoon();
-                // Observe dynamic changes
-                const mo = new MutationObserver((muts) => {
-                    for (const m of muts){
-                        if (m.addedNodes) m.addedNodes.forEach(n => { if (n.nodeType === 1) stripComingSoon(n); });
-                    }
-                });
-                mo.observe(document.documentElement, { childList: true, subtree: true });
-            })();
-        </script>
-        <script>
-            // Handle legacy "This feature requires FB AIO extension" banner
-            (function(){
-                const NEW_EXT_URL = 'https://tika1996.github.io/facebook.tika.aio/'; // fallback info page
-                const OLD_EXT_ID = 'ncncagnhhigemlgiflfgdhcdpipadmmm';
-                const CWS_HOST = 'chromewebstore.google.com';
-                function fixBanner(root){
-                    const c = root || document;
-                    // Find banners by text
-                    c.querySelectorAll('div,section,article').forEach(el => {
-                        if (el.closest('.swal2-container')) return; // skip SweetAlert
-                        const txt = (el.textContent || '').trim();
-                        if (/this feature requires\s*fb aio extension/i.test(txt)){
-                            // Try to retarget the CTA button
-                            const btn = el.querySelector('a,button');
-                            if (btn && btn.tagName === 'A'){
-                                try { btn.href = NEW_EXT_URL; btn.target = '_blank'; } catch(e){}
-                            }
-                            // Also hide the legacy banner if desired
-                            el.classList.add('fbaio-ext-required');
-                        }
-                    });
-                    // Rewrite any anchors pointing to Chrome Web Store / old extension ID
-                    c.querySelectorAll('a[href]').forEach(a => {
-                        try {
-                            const url = new URL(a.href, location.href);
-                            if (url.host.includes(CWS_HOST) || url.href.includes(OLD_EXT_ID)){
-                                a.href = NEW_EXT_URL;
-                                a.target = '_blank';
-                                a.rel = 'noopener noreferrer';
-                            }
-                        } catch(e){}
-                        // Retarget any button-like anchor with label 'Install now'
-                        const label = (a.textContent || '').trim();
-                        if (/^install now$/i.test(label)){
-                            a.href = NEW_EXT_URL;
-                            a.target = '_blank';
-                            a.rel = 'noopener noreferrer';
-                        }
-                    });
-                }
-                // Initial
-                fixBanner();
-                // Observe
-                const mo2 = new MutationObserver((muts) => {
-                    for (const m of muts) {
-                        m.addedNodes && m.addedNodes.forEach(n => { if (n.nodeType === 1) fixBanner(n); });
-                    }
-                });
-                mo2.observe(document.documentElement, { childList: true, subtree: true });
-            })();
-        </script>
-      <script type="module" crossorigin src="./assets/index-DZEcYG8Q.js"></script>
-      <link rel="stylesheet" crossorigin href="./assets/index-C6k8ZUm0.css">
-    </head>
-
-    <body style="margin: 0; padding: 0">
-        <!--[if IE]>
-            <p class="browserupgrade">
-                You are using an <strong>outdated</strong> browser. Please
-                <a href="https://browsehappy.com/">upgrade your browser</a> to improve your
-                experience and security.
-            </p>
-        <![endif]-->
-
-        <div id="root" style="margin: 0; padding: 0">
-            <div class="_init_loading">
-                <h1>🚀 Getting ready...</h1>
-            </div>
-        </div>
-    </body>
-</html>
+const __vite__mapDeps=(i,m=__vite__mapDeps,d=(m.f||(m.f=["./file-download-pLw6ZM0z.js","./index-DZEcYG8Q.js","./index-C6k8ZUm0.css"])))=>i.map(i=>d[i]);
+import{a$ as i,b1 as o,b5 as e,aY as t}from"./index-DZEcYG8Q.js";import{u as l,t as n}from"./MyApp-DRRa55Bd.js";import{D as a}from"./index-KPoWFIyW.js";import"./sweetalert2.esm.all-BZxvatOx.js";import"./getIds-BE6G2xp0.js";import"./index-B87p3I4c.js";import"./Input-LTpJ6AuY.js";import"./EyeOutlined-BBPXKIU8.js";import"./SearchOutlined-Bh66KhXc.js";import"./index-CiDxWY8X.js";import"./Dropdown-BgvXKd3u.js";import"./dropdown-BoVCRztz.js";import"./PurePanel-Beni9Vkb.js";import"./move-Bzyc79vL.js";
+async function __buildZip(data){
+  const { default: fileDownload } = await import('./file-download-pLw6ZM0z.js').then(m=>({default:m.f}));
+  const mod = await import('./jszip.min-BE4ZPCso.js');
+  const candidates = [
+    mod?.JSZip,
+    mod?.default?.JSZip,
+    mod?.j?.JSZip,
+    mod?.default,
+    mod?.j,
+    mod,
+    (typeof window!=='undefined'&&window.JSZip)
+  ];
+  let zip = null;
+  for (const cand of candidates){
+    if (!cand) continue;
+    try {
+      if (typeof cand === 'function') {
+        try { zip = new cand(); } catch { zip = cand(); }
+      } else if (typeof cand.JSZip === 'function') {
+        try { zip = new cand.JSZip(); } catch { zip = cand.JSZip(); }
+      } else if (cand.file && cand.generateAsync) {
+        zip = cand; // already an instance
+      }
+    } catch {}
+    if (zip && typeof zip.file === 'function' && typeof zip.generateAsync === 'function') break;
+    else zip = null;
+  }
+  if (!zip) throw new TypeError('JSZip instance could not be created');
+  // Fallback via CDN if still not available
+  if (!zip) {
+    await new Promise((res, rej)=>{
+      const s=document.createElement('script');
+      s.src='https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js';
+      s.onload=()=>res(); s.onerror=()=>rej(new Error('CDN JSZip load failed'));
+      document.head.appendChild(s);
+    });
+    if (window.JSZip) zip = new window.JSZip();
+  }
+  // Add JSON
+  const jsonStr = typeof data === 'string' ? data : JSON.stringify(data, null, 2);
+  zip.file('posts.json', jsonStr);
+  // Build simple HTML viewer
+  const escape = s=>String(s).replace(/[&<>]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;"}[c]));
+  const urls = Array.from(new Set((jsonStr.match(/https?:[^"'\s)]+/g)||[])))
+    .filter(u=>/\.(jpe?g|png|gif|webp|mp4|webm)(\?|$)/i.test(u));
+  let mediaMap = new Map();
+  let idx = 1;
+  for (const u of urls){
+    const ext = (u.split('?')[0].match(/\.(\w+)$/)||['','.bin'])[1];
+    const name = `media/${idx}.${ext}`;
+    try {
+      const res = await fetch(u, {credentials:'include'});
+      if (res.ok){
+        const blob = await res.blob();
+        zip.file(name, blob);
+        mediaMap.set(u, name);
+        idx++;
+      }
+    } catch(e){}
+  }
+  const html = `<!doctype html><html><head><meta charset="utf-8"/><title>FB AIO Export</title><style>body{font-family:system-ui,Segoe UI,Arial;padding:16px;background:#0b0b0b;color:#ddd}a{color:#4ea3ff}img,video{max-width:100%;height:auto;margin:8px 0;border:1px solid #333;border-radius:6px}</style></head><body><h1>FB AIO Export</h1><p>${urls.length} media found. JSON included as posts.json</p><div id="list"></div><script>const urls=${JSON.stringify(urls)};const map=${JSON.stringify(Object.fromEntries(mediaMap))};const root=document.getElementById('list');urls.forEach(u=>{const local=map[u];let el;if(/\.(mp4|webm)(\?|$)/i.test(u)){el=document.createElement('video');el.controls=true;el.src=local||u;}else{el=document.createElement('img');el.src=local||u;}const p=document.createElement('p');p.textContent=u;root.appendChild(el);root.appendChild(p);});</script></body></html>`;
+  zip.file('index.html', html);
+  const blob = await zip.generateAsync({type:'blob'});
+  fileDownload(blob, `export_${Date.now()}.zip`);
+}
+function s({data:s,children:p,options:d,title:m={en:"Export",vi:"Xuất"}}){
+  const {message:u}=i.useApp(),{ti:c}=l();
+  // Ensure options array exists
+  d = Array.isArray(d)? d.slice() : [];
+  // Append our ZIP option
+  d.push({ key:'zip_all', label: c({en:'Export ZIP', vi:'Xuất ZIP'})});
+  const f=d.map(({key:i,label:o})=>({key:i,label:o}));
+  const dropdown = o.jsx(a,{menu:{items:f,onClick:i=>(async key=>{var o; if(!(null==s?void 0:s.length)) return u.error(c({en:'No data to export',vi:'Không có dữ liệu'}));
+        if (key==='zip_all') { n('onClickExport:'+key); await __buildZip(s); return; }
+        const e=d.find(o=>o.key==key);
+        if('function'==typeof(null==e?void 0:e.onClick)) n('onClickExport:'+key+'onClick'), null==e||e.onClick(s);
+        else { const l=null==(o=null==e?void 0:e.prepareData)?void 0:o.call(e,s); (null==l?void 0:l.data)&&(n('onClickExport:'+key+':'+l.fileName), t((()=>import('./file-download-pLw6ZM0z.js').then(i=>i.f)),__vite__mapDeps([0,1,2]),import.meta.url).then(i=>i.default(l.data,l.fileName))); }
+      })(i.key)},children:p||o.jsx(e,{type:'primary',icon:o.jsx('i',{className:'fa-solid fa-download'}),children:c(m)+" "+((null==s?void 0:s.length)||0)})});
+  const zipBtn = o.jsx(e,{type:'default',style:{marginLeft:'8px'},onClick:async()=>{ if(!(null==s?void 0:s.length)) return u.error(c({en:'No data to export',vi:'Không có dữ liệu'})); n('onClickExport:zip_button'); await __buildZip(s); },children:c({en:'Export ZIP',vi:'Xuất ZIP'})});
+  return o.jsxs('span',{children:[dropdown, zipBtn]});
+}
+export{s as default};
