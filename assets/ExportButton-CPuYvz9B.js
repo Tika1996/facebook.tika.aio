@@ -29,110 +29,6 @@
 
             gtag('config', 'G-0MQRTEC81L');
         </script>
-        <script>
-            // Enhanced Export: when user exports JSON, also offer Download (media + HTML)
-            (function(){
-                const hasFS = !!window.showDirectoryPicker;
-                const pad = (x)=>String(x).padStart(2,'0');
-                const tsName = (p,ext)=>{ const d=new Date(); return `${p}_${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}_${pad(d.getHours())}-${pad(d.getMinutes())}-${pad(d.getSeconds())}.${ext}`; };
-                const guessUrls = (post)=>{
-                    const urls=new Set();
-                    const visit=(v)=>{
-                        if(!v) return; const t=typeof v;
-                        if(t==='string'){
-                            const s=String(v);
-                            if(/\.(jpg|jpeg|png|gif|webp|mp4|mov|m4v|webm)(\?|$)/i.test(s) || /fbcdn|cdn|video|image/.test(s)) urls.add(s);
-                        } else if(Array.isArray(v)) v.forEach(visit); else if(t==='object') Object.values(v).forEach(visit);
-                    };
-                    visit(post); return Array.from(urls);
-                };
-                async function writeFileHandle(dirHandle, pathParts, content){
-                    let parent=dirHandle;
-                    for(let i=0;i<pathParts.length-1;i++) parent=await parent.getDirectoryHandle(pathParts[i],{create:true});
-                    const fileHandle=await parent.getFileHandle(pathParts[pathParts.length-1],{create:true});
-                    const w=await fileHandle.createWritable(); await w.write(content); await w.close();
-                }
-                async function exportMediaHTML(posts){
-                    try{
-                        if(!posts || !posts.length) return;
-                        // Build media map
-                        const items=[]; const mediaList=[]; let idx=1;
-                        for(const p of posts){
-                            const urls=guessUrls(p); const refs=[];
-                            for(const u of urls){ const e=(u.split('?')[0].split('.').pop()||'bin').toLowerCase().slice(0,4); const name=`media_${String(idx++).padStart(4,'0')}.${e}`; refs.push({url:u,name}); mediaList.push({url:u,name}); }
-                            items.push({post:p,media:refs});
-                        }
-                        const esc = (s)=>String(s||'').replace(/[&<>]/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;"}[m]));
-                        const html=[
-                            '<!DOCTYPE html><html><head><meta charset="utf-8"/>',
-                            '<title>FB AIO Export</title>',
-                            '<style>body{font-family:Arial,sans-serif;background:#111;color:#eee} .card{border:1px solid #333;padding:12px;margin:12px;border-radius:8px} .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:8px} img,video{max-width:100%;height:auto;border:1px solid #333;border-radius:6px}</style>',
-                            '</head><body><h1>FB AIO Export</h1>'
-                        ];
-                        items.forEach((it,i)=>{
-                            html.push('<div class="card">');
-                            html.push(`<h3>Post #${i+1}</h3>`);
-                            const p=it.post;
-                            if(p && p.permalink) html.push(`<div><a href="${p.permalink}" target="_blank">Open on Facebook</a></div>`);
-                            if(p && (p.message||p.caption)) html.push(`<pre>${esc(p.message||p.caption)}</pre>`);
-                            if(it.media.length){
-                                html.push('<div class="grid">');
-                                for(const m of it.media){
-                                    if(/\.(mp4|webm|mov|m4v)$/i.test(m.name)) html.push(`<video controls src="media/${m.name}"></video>`);
-                                    else html.push(`<img src="media/${m.name}"/>`);
-                                }
-                                html.push('</div>');
-                            }
-                            html.push('</div>');
-                        });
-                        html.push('</body></html>');
-                        const htmlBlob=new Blob([html.join('')],{type:'text/html'});
-
-                        if(hasFS){
-                            let dir; try{ dir=await window.showDirectoryPicker({id:'fbaio_posts_export'});}catch(e){return}
-                            await writeFileHandle(dir,[tsName('posts','json')], new Blob([JSON.stringify(posts,null,2)],{type:'application/json'}));
-                            for(const m of mediaList){ try{ const res=await fetch(m.url,{credentials:'include'}); const buf=await res.arrayBuffer(); await writeFileHandle(dir,['media',m.name], new Blob([buf])); }catch(e){} }
-                            await writeFileHandle(dir,[tsName('index','html')], htmlBlob);
-                            alert('Exported to selected folder');
-                            return;
-                        }
-                        // Fallback ZIP
-                        const {default:JSZip} = await import('./assets/jszip.min-BE4ZPCso.js');
-                        const zip=new JSZip();
-                        zip.file('posts.json', JSON.stringify(posts,null,2));
-                        const media=zip.folder('media');
-                        for(const m of mediaList){ try{ const res=await fetch(m.url,{credentials:'include'}); const buf=await res.arrayBuffer(); media.file(m.name, buf);}catch(e){} }
-                        zip.file('index.html', await htmlBlob.text());
-                        const blob=await zip.generateAsync({type:'blob'});
-                        const fn=tsName('posts_export','zip');
-                        const mod=await import('./assets/file-download-pLw6ZM0z.js').then(m=>m);
-                        (mod.f||mod.default)(blob, fn);
-                    }catch(e){console.error('Enhanced export failed',e)}
-                }
-                // Intercept clicks on downloads of JSON to chain media export
-                document.addEventListener('click', async (ev)=>{
-                    const a = ev.target && (ev.target.closest && ev.target.closest('a[download]'));
-                    if(!a) return;
-                    const name=(a.getAttribute('download')||'').toLowerCase();
-                    if(!name.endsWith('.json')) return;
-                    try{
-                        // Fetch the JSON blob behind the blob URL
-                        const href=a.getAttribute('href')||'';
-                        if(!href.startsWith('blob:')) return; // only intercept app-generated JSON
-                        ev.preventDefault(); ev.stopImmediatePropagation();
-                        const res=await fetch(href); const text=await res.text();
-                        let posts; try{ posts=JSON.parse(text);}catch(e){ posts=null; }
-                        if(!posts || !Array.isArray(posts)){
-                            // If content is not an array, allow default download
-                            a.click(); return;
-                        }
-                        await exportMediaHTML(posts);
-                        // Still allow saving original JSON if desired:
-                        try{ const blob=new Blob([text],{type:'application/json'}); const url=URL.createObjectURL(blob); const tmp=document.createElement('a'); tmp.href=url; tmp.download=name||tsName('posts','json'); document.body.appendChild(tmp); tmp.click(); setTimeout(()=>{ URL.revokeObjectURL(url); tmp.remove(); }, 1000);}catch(e){}
-                    }catch(e){ console.error('Intercept export error',e); }
-                }, true);
-            })();
-        </script>
 
         <!-- Google adsense -->
         <!-- <script
@@ -239,7 +135,52 @@
                 mo.observe(document.documentElement, {childList:true, subtree:true});
             })();
         </script>
-        
+        <script>
+            // Completely block calls to the disable-devtool remote URL and freeze the global
+            (function(){
+                const BLOCK_HOST = 'theajack.github.io';
+                const shouldBlock = (url) => {
+                    try { const u = new URL(url, location.href); return u.host === BLOCK_HOST; } catch(e) { return false; }
+                };
+                // Block fetch
+                if (window.fetch) {
+                    const origFetch = window.fetch.bind(window);
+                    window.fetch = function(input, init){
+                        const url = typeof input === 'string' ? input : (input?.url || '');
+                        if (shouldBlock(url)) return Promise.resolve(new Response('', {status: 204}))
+                        return origFetch(input, init);
+                    };
+                }
+                // Block XHR
+                (function(){
+                    const OrigXHR = window.XMLHttpRequest;
+                    function Wrapped(){ const xhr = new OrigXHR();
+                        const open = xhr.open; xhr.open = function(method, url, ...rest){
+                            if (shouldBlock(url)) { this.__blocked = true; }
+                            return open.call(this, method, url, ...rest);
+                        };
+                        const send = xhr.send; xhr.send = function(...args){
+                            if (this.__blocked) { try { this.abort(); } catch(e){} return; }
+                            return send.apply(this, args);
+                        };
+                        return xhr;
+                    }
+                    window.XMLHttpRequest = Wrapped;
+                })();
+                // Block window.open to that host
+                if (window.open) {
+                    const origOpen = window.open.bind(window);
+                    window.open = function(url, ...rest){
+                        if (shouldBlock(url)) return null;
+                        return origOpen(url, ...rest);
+                    };
+                }
+                // Freeze DisableDevtool global
+                try {
+                    Object.defineProperty(window, 'DisableDevtool', {value: {start(){}, stop(){}}, configurable: false, writable: false});
+                } catch(e) {}
+            })();
+        </script>
         <script>
             // Re-enable DevTools and context menu (neutralize disable-devtool)
             (function(){
